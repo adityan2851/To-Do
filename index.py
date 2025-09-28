@@ -98,3 +98,58 @@ def clear_tasks(clear_done: bool = False, clear_all: bool = False):
         kept = [t for t in tasks if not t.done]
         save_tasks(kept); print("Cleared completed tasks."); return
     print("Nothing to do. Use --done or --all.")
+
+import argparse
+
+def valid_date(s: str) -> str:
+    # simple YYYY-MM-DD validation
+    try:
+        datetime.strptime(s, "%Y-%m-%d")
+        return s
+    except ValueError:
+        raise argparse.ArgumentTypeError("Date must be YYYY-MM-DD")
+
+def build_parser():
+    p = argparse.ArgumentParser(description="Tiny To-Do (CLI)")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    p_add = sub.add_parser("add", help="Add a new task")
+    p_add.add_argument("text", help="Task description")
+    p_add.add_argument("-p", "--priority", type=int, choices=range(1,6), default=3, help="Priority 1-5 (1=high)")
+    p_add.add_argument("-d", "--due", type=valid_date, help="Due date YYYY-MM-DD")
+
+    p_list = sub.add_parser("list", help="List tasks")
+    g = p_list.add_mutually_exclusive_group()
+    g.add_argument("--all", dest="view", action="store_const", const="all", help="Show all")
+    g.add_argument("--open", dest="view", action="store_const", const="open", help="Only open (default)")
+    g.add_argument("--done", dest="view", action="store_const", const="done", help="Only completed")
+    p_list.set_defaults(view="open")
+
+    p_done = sub.add_parser("done", help="Mark a task done by ID")
+    p_done.add_argument("id", type=int)
+
+    p_del = sub.add_parser("delete", help="Delete a task by ID")
+    p_del.add_argument("id", type=int)
+
+    p_clear = sub.add_parser("clear", help="Clear tasks")
+    p_clear.add_argument("--done", action="store_true", help="Clear completed tasks")
+    p_clear.add_argument("--all", action="store_true", help="Clear ALL tasks")
+
+    return p
+
+def main(argv=None):
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.cmd == "add":
+        add_task(args.text, priority=args.priority, due=args.due)
+    elif args.cmd == "list":
+        list_tasks(view=args.view)
+    elif args.cmd == "done":
+        mark_done(args.id)
+    elif args.cmd == "delete":
+        delete_task(args.id)
+    elif args.cmd == "clear":
+        clear_tasks(clear_done=args.done, clear_all=args.all)
+
+if __name__ == "__main__":
+    main()
